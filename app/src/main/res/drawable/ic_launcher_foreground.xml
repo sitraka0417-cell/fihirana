@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- livre ouvert -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,40 C47,35 38,34 29,35.5 L29,70 C38,68.5 47,69.5 54,74.5 C61,69.5 70,68.5 79,70 L79,35.5 C70,34 61,35 54,40 Z" />
+    <path
+        android:strokeColor="#0F766E"
+        android:strokeWidth="2"
+        android:pathData="M54,41 L54,73" />
+    <!-- note de musique -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M58,26 L58,44 C56.8,43.2 55.2,43 54,43.6 C52,44.6 51.5,47 53.2,48.2 C55,49.4 57.6,48.6 58.6,46.4 C58.9,45.8 59,45.2 59,44.6 L59,29 L67,27.4 L67,38 C65.8,37.2 64.2,37 63,37.6 C61,38.6 60.5,41 62.2,42.2 C64,43.4 66.6,42.6 67.6,40.4 C67.9,39.8 68,39.2 68,38.6 L68,24 Z" />
+</vector>

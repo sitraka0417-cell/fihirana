@@ -1,0 +1,61 @@
+name: Build APK Fihirana & Baiboly
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      # Si vous ajoutez le secret KEYSTORE_BASE64 (+ KS_PASS, KEY_ALIAS, KEY_PASS),
+      # l'APK est toujours signé avec VOTRE clé (mises à jour possibles par-dessus).
+      # Sinon, une clé est générée automatiquement à chaque build.
+      - name: Préparer la clé de signature
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > app/release.jks
+          else
+            keytool -genkeypair -keystore app/release.jks -storepass fihirana123 -keypass fihirana123 \
+              -alias fihirana -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Sitraka Nambinintsoa, O=Fihirana et Baiboly, C=MG"
+          fi
+
+      - name: Compiler (release)
+        env:
+          KS_PASS: ${{ secrets.KS_PASS }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.KEY_PASS }}
+        run: gradle :app:assembleRelease --stacktrace --no-daemon
+
+      - name: Renommer l'APK
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/release/*.apk out/Fihirana-Baiboly.apk
+
+      - name: Publier l'APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fihirana-Baiboly-APK
+          path: out/Fihirana-Baiboly.apk
