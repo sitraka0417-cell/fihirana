@@ -41,14 +41,14 @@ object Prefs {
         compareTrs = (sp.getString("cmp", "1,2,3,4") ?: "1,2,3,4").split(',').mapNotNull { it.toIntOrNull() }.ifEmpty { listOf(1, 2) }
     }
 
-    fun setThemeMode(v: Int) { themeMode = v; sp.edit().putInt("theme", v).apply() }
-    fun setAccent(v: Int) { accent = v; sp.edit().putInt("accent", v).apply() }
-    fun setFontScale(v: Float) { fontScale = v; sp.edit().putFloat("font", v).apply() }
-    fun setJustify(v: Boolean) { justify = v; sp.edit().putBoolean("justify", v).apply() }
-    fun setKeepOn(v: Boolean) { keepOn = v; sp.edit().putBoolean("keepOn", v).apply() }
-    fun setHeadings(v: Boolean) { headings = v; sp.edit().putBoolean("headings", v).apply() }
-    fun setBibleTr(v: Int) { bibleTr = v; sp.edit().putInt("tr", v).apply() }
-    fun setCompareTrs(v: List<Int>) { compareTrs = v; sp.edit().putString("cmp", v.joinToString(",")).apply() }
+    fun putThemeMode(v: Int) { themeMode = v; sp.edit().putInt("theme", v).apply() }
+    fun putAccent(v: Int) { accent = v; sp.edit().putInt("accent", v).apply() }
+    fun putFontScale(v: Float) { fontScale = v; sp.edit().putFloat("font", v).apply() }
+    fun putJustify(v: Boolean) { justify = v; sp.edit().putBoolean("justify", v).apply() }
+    fun putKeepOn(v: Boolean) { keepOn = v; sp.edit().putBoolean("keepOn", v).apply() }
+    fun putHeadings(v: Boolean) { headings = v; sp.edit().putBoolean("headings", v).apply() }
+    fun putBibleTr(v: Int) { bibleTr = v; sp.edit().putInt("tr", v).apply() }
+    fun putCompareTrs(v: List<Int>) { compareTrs = v; sp.edit().putString("cmp", v.joinToString(",")).apply() }
 
     // ---- dernières positions
     fun rememberHymn(lang: String, num: Int) {

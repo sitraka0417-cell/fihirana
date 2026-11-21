@@ -190,9 +190,9 @@ fun SettingsScreen() {
             item(key = "theme") {
                 SettingCard("Endrika (thème)") {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Chip("Araka ny finday", Prefs.themeMode == 0, { Prefs.setThemeMode(0) })
-                        Chip("Mazava", Prefs.themeMode == 1, { Prefs.setThemeMode(1) })
-                        Chip("Maizina", Prefs.themeMode == 2, { Prefs.setThemeMode(2) })
+                        Chip("Araka ny finday", Prefs.themeMode == 0, { Prefs.putThemeMode(0) })
+                        Chip("Mazava", Prefs.themeMode == 1, { Prefs.putThemeMode(1) })
+                        Chip("Maizina", Prefs.themeMode == 2, { Prefs.putThemeMode(2) })
                     }
                     Spacer(Modifier.height(16.dp))
                     Text("Loko lehibe", fontSize = 13.sp, color = ex.muted)
@@ -206,7 +206,7 @@ fun SettingsScreen() {
                                     .clip(CircleShape)
                                     .background(c)
                                     .then(if (Prefs.accent == i) Modifier.border(3.dp, cs.onSurface, CircleShape) else Modifier)
-                                    .clickable { Prefs.setAccent(i) },
+                                    .clickable { Prefs.putAccent(i) },
                                 contentAlignment = Alignment.Center
                             ) { if (Prefs.accent == i) Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(20.dp)) }
                         }
@@ -219,21 +219,21 @@ fun SettingsScreen() {
                         "Efa anananao ve ny fiadanan'ny fo?",
                         fontSize = (20 * Prefs.fontScale).sp, lineHeight = (30 * Prefs.fontScale).sp
                     )
-                    Slider(value = Prefs.fontScale, onValueChange = { Prefs.setFontScale(it) }, valueRange = 0.8f..1.8f)
+                    Slider(value = Prefs.fontScale, onValueChange = { Prefs.putFontScale(it) }, valueRange = 0.8f..1.8f)
                     Text("${(Prefs.fontScale * 100).toInt()}%", fontSize = 12.sp, color = ex.muted)
                     Spacer(Modifier.height(8.dp))
-                    ToggleRow("Soratra voalamina (justifié)", "Ho an'ny Baiboly", Prefs.justify) { Prefs.setJustify(it) }
-                    ToggleRow("Aseho ny lohateny ao amin'ny Baiboly", "Ny lohatenin'ny fizarana (manga)", Prefs.headings) { Prefs.setHeadings(it) }
+                    ToggleRow("Soratra voalamina (justifié)", "Ho an'ny Baiboly", Prefs.justify) { Prefs.putJustify(it) }
+                    ToggleRow("Aseho ny lohateny ao amin'ny Baiboly", "Ny lohatenin'ny fizarana (manga)", Prefs.headings) { Prefs.putHeadings(it) }
                 }
             }
             item(key = "bible") {
                 SettingCard("Baiboly fototra") {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (t in Repo.trs.take(3)) Chip(t.short, Prefs.bibleTr == t.id, { Prefs.setBibleTr(t.id) })
+                        for (t in Repo.trs.take(3)) Chip(t.short, Prefs.bibleTr == t.id, { Prefs.putBibleTr(t.id) })
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for (t in Repo.trs.drop(3)) Chip(t.short, Prefs.bibleTr == t.id, { Prefs.setBibleTr(t.id) })
+                        for (t in Repo.trs.drop(3)) Chip(t.short, Prefs.bibleTr == t.id, { Prefs.putBibleTr(t.id) })
                     }
                     Spacer(Modifier.height(8.dp))
                     Text(Repo.tr(Prefs.bibleTr).name, fontSize = 13.sp, color = ex.muted)
@@ -246,7 +246,7 @@ fun SettingsScreen() {
                             val on = t.id in Prefs.compareTrs
                             Chip(t.short, on, {
                                 val l = if (on) Prefs.compareTrs - t.id else Prefs.compareTrs + t.id
-                                if (l.isNotEmpty()) Prefs.setCompareTrs(l.sorted())
+                                if (l.isNotEmpty()) Prefs.putCompareTrs(l.sorted())
                             })
                         }
                     }
@@ -256,7 +256,7 @@ fun SettingsScreen() {
                             val on = t.id in Prefs.compareTrs
                             Chip(t.short, on, {
                                 val l = if (on) Prefs.compareTrs - t.id else Prefs.compareTrs + t.id
-                                if (l.isNotEmpty()) Prefs.setCompareTrs(l.sorted())
+                                if (l.isNotEmpty()) Prefs.putCompareTrs(l.sorted())
                             })
                         }
                     }
@@ -264,7 +264,7 @@ fun SettingsScreen() {
             }
             item(key = "misc") {
                 SettingCard("Hafa") {
-                    ToggleRow("Aza avela hatory ny efijery", "Mandritra ny famakiana", Prefs.keepOn) { Prefs.setKeepOn(it) }
+                    ToggleRow("Aza avela hatory ny efijery", "Mandritra ny famakiana", Prefs.keepOn) { Prefs.putKeepOn(it) }
                 }
             }
         }

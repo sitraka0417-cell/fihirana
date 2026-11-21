@@ -486,7 +486,7 @@ fun FontDialog(onDismiss: () -> Unit) {
             )
             Spacer(Modifier.height(10.dp))
             Slider(
-                value = Prefs.fontScale, onValueChange = { Prefs.setFontScale(it) }, valueRange = 0.8f..1.8f
+                value = Prefs.fontScale, onValueChange = { Prefs.putFontScale(it) }, valueRange = 0.8f..1.8f
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("A", fontSize = 13.sp, color = LocalExtra.current.muted)

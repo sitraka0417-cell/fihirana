@@ -367,7 +367,7 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(Repo.trs, key = { it.id }) { t ->
-                        Chip(t.short, t.id == trId, { Prefs.setBibleTr(t.id) })
+                        Chip(t.short, t.id == trId, { Prefs.putBibleTr(t.id) })
                     }
                 }
             }
@@ -618,7 +618,7 @@ fun CompareScreen(book0: Int, chapter0: Int, from0: Int, to0: Int) {
                             val on = t.id in chosen
                             Chip(t.short, on, {
                                 val l = if (on) chosen - t.id else chosen + t.id
-                                if (l.isNotEmpty()) Prefs.setCompareTrs(l.sorted())
+                                if (l.isNotEmpty()) Prefs.putCompareTrs(l.sorted())
                             })
                         }
                     }
@@ -751,7 +751,7 @@ fun BibleSearchScreen() {
                         .clip(RoundedCornerShape(16.dp))
                         .background(cs.primaryContainer)
                         .clickable {
-                            Prefs.setBibleTr(trId)
+                            Prefs.putBibleTr(trId)
                             nav.go(Screen.BibleRead(ref.book, ref.chapter, ref.verse))
                         }
                         .padding(16.dp),
@@ -777,7 +777,7 @@ fun BibleSearchScreen() {
                         Modifier
                             .fillMaxWidth()
                             .clickable {
-                                Prefs.setBibleTr(trId)
+                                Prefs.putBibleTr(trId)
                                 nav.go(Screen.BibleRead(v.book, v.chapter, v.verse))
                             }
                             .padding(horizontal = 20.dp, vertical = 10.dp)
