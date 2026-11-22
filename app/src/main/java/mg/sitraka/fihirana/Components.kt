@@ -73,6 +73,7 @@ import kotlinx.coroutines.withContext
 fun heroColorFor(lang: String): Color = when (lang) {
     "mg" -> Color(0xFF0F766E)
     "fr" -> Color(0xFF3949AB)
+    "ak" -> Color(0xFFD97706)
     else -> Color(0xFF9D2B6B)
 }
 

@@ -81,7 +81,7 @@ object Bg {
 
     fun book(b: Int): Int = books[b] ?: bibleFond
     fun hymn(lang: String, num: Int): Int {
-        val off = when (lang) { "mg" -> 0; "fr" -> 3; else -> 5 }
+        val off = when (lang) { "mg" -> 0; "fr" -> 3; "ak" -> 2; else -> 5 }
         return hymns[(num + off) % hymns.size]
     }
 

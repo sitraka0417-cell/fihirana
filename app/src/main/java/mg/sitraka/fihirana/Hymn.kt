@@ -71,6 +71,10 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.width
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -200,12 +204,12 @@ fun HymnListScreen(lang: String) {
         body = {
             item(key = "langs") {
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     for (l in Repo.langs) Chip(l.short, l.code == lang, { if (l.code != lang) nav.replace(Screen.HymnList(l.code)) })
-                    Spacer(Modifier.weight(1f))
+                    Spacer(Modifier.width(8.dp))
                     if (q.isEmpty()) {
                         Chip("Laharana", tab == 0, { tab = 0 })
                         Chip("Lohahevitra", tab == 1, { tab = 1 })
@@ -263,7 +267,7 @@ fun HymnListScreen(lang: String) {
 
 // ======================================================================= Détail
 private fun refrainLabel(lang: String) = when (lang) {
-    "mg" -> "Isan'andininy"
+    "mg", "ak" -> "Isan'andininy"
     "fr" -> "Refrain"
     else -> "Chorus"
 }
@@ -496,6 +500,9 @@ fun FontDialog(onDismiss: () -> Unit) {
 @Composable
 fun PresentOverlay(h: Hymn, stanzas: List<Stanza>, onClose: () -> Unit) {
     val pager = rememberPagerState(pageCount = { stanzas.size })
+    val scope = rememberCoroutineScope()
+    var showRef by remember { mutableStateOf(false) }
+    val refrain = stanzas.firstOrNull { it.isRefrain }
     val view = LocalView.current
     DisposableEffect(Unit) {
         view.keepScreenOn = true
@@ -530,6 +537,32 @@ fun PresentOverlay(h: Hymn, stanzas: List<Stanza>, onClose: () -> Unit) {
                     )
                 }
             }
+            if (showRef && refrain != null) {
+                val rl = refrain.text.count { it == '\n' } + 1
+                val rsp = when {
+                    rl <= 4 -> 40
+                    rl <= 6 -> 33
+                    rl <= 8 -> 28
+                    else -> 23
+                }
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF05070A))
+                        .pointerInput(Unit) { detectTapGestures { } }
+                        .statusBarsPadding().navigationBarsPadding()
+                        .padding(horizontal = 28.dp, vertical = 70.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(refrainLabel(h.lang), color = Color(0xFF2DD4BF), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        refrain.text, color = Color.White, textAlign = TextAlign.Center,
+                        fontSize = rsp.sp, lineHeight = (rsp * 1.4f).sp, fontStyle = FontStyle.Italic
+                    )
+                }
+            }
             Row(
                 Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -544,6 +577,33 @@ fun PresentOverlay(h: Hymn, stanzas: List<Stanza>, onClose: () -> Unit) {
                     Modifier.size(40.dp).clip(CircleShape).background(Color(0x33FFFFFF)).clickable(onClick = onClose),
                     contentAlignment = Alignment.Center
                 ) { Icon(Icons.Default.Close, "Akatony", tint = Color.White) }
+            }
+            if (refrain != null) {
+                Box(
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .navigationBarsPadding()
+                        .padding(start = 20.dp, bottom = 22.dp)
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(if (showRef) Color(0xFF2DD4BF) else Color(0x33FFFFFF))
+                        .clickable {
+                            if (showRef) {
+                                showRef = false
+                                val cur = pager.currentPage
+                                var nxt = -1
+                                for (i in cur + 1 until stanzas.size) {
+                                    if (!stanzas[i].isRefrain) { nxt = i; break }
+                                }
+                                if (nxt >= 0) scope.launch { pager.scrollToPage(nxt) }
+                            } else {
+                                showRef = true
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("R", color = if (showRef) Color(0xFF05070A) else Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                }
             }
         }
     }

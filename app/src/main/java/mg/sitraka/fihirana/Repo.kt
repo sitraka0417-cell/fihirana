@@ -9,7 +9,7 @@ import java.io.FileOutputStream
 /** Accès en lecture seule à la base de contenu (cantiques + Bibles) livrée dans les assets. */
 object Repo {
     private const val ASSET = "fihirana_baiboly.db"
-    private const val CONTENT_VERSION = 1
+    private const val CONTENT_VERSION = 2
 
     lateinit var db: SQLiteDatabase
         private set
@@ -156,6 +156,10 @@ object Repo {
     }
 
     fun chapterCount(book: Int): Int = bookOf(book).chapters
+
+    fun verseCount(tr: Int, book: Int, chapter: Int): Int =
+        query("SELECT MAX(verse) FROM bible_verses WHERE tr=? AND book=? AND chapter=?",
+            arrayOf(tr.toString(), book.toString(), chapter.toString())) { it.getInt(0) }.firstOrNull() ?: 0
 
     fun audioUrls(tr: Int, book: Int, chapter: Int): List<String> =
         query("SELECT url,url2 FROM bible_audio WHERE tr=? AND book=? AND chapter=?", arrayOf(tr.toString(), book.toString(), chapter.toString())) {

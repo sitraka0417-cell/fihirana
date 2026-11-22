@@ -5,6 +5,11 @@ package mg.sitraka.fihirana
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.animation.fadeIn
@@ -140,6 +145,7 @@ private fun VerseRow(
     hasNote: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    flash: Boolean = false,
 ) {
     val cs = MaterialTheme.colorScheme
     val ex = LocalExtra.current
@@ -156,7 +162,16 @@ private fun VerseRow(
                     modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 6.dp)
                 )
             }
+            val pulse = if (flash) {
+                rememberInfiniteTransition(label = "flash").animateFloat(
+                    initialValue = 0.10f,
+                    targetValue = 0.55f,
+                    animationSpec = infiniteRepeatable(tween(450), RepeatMode.Reverse),
+                    label = "pulse"
+                ).value
+            } else 0f
             val bg = when {
+                flash -> cs.primary.copy(alpha = pulse)
                 selected -> cs.primary.copy(alpha = 0.16f)
                 colorIdx in 1..HighlightColors.size -> HighlightColors[colorIdx - 1]
                 else -> Color.Transparent
@@ -222,6 +237,13 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
     var showColors by remember { mutableStateOf(false) }
     var noteFor by remember { mutableStateOf<Long?>(null) }
     var jump by remember { mutableStateOf(verse0) }
+    var flash by remember { mutableStateOf(verse0) }
+    LaunchedEffect(flash, verses.size) {
+        if (flash > 0 && verses.isNotEmpty()) {
+            delay(5000)
+            flash = 0
+        }
+    }
     val listState = rememberLazyListState()
     LaunchedEffect(book, chapter) { if (active) Prefs.rememberBible(book, chapter) }
     LaunchedEffect(verses) {
@@ -232,8 +254,8 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
         }
     }
 
-    fun go(b: Int, c: Int) {
-        nav.replace(Screen.BibleRead(b, c))
+    fun go(b: Int, c: Int, v: Int = 0) {
+        nav.replace(Screen.BibleRead(b, c, v))
     }
 
     fun step(d: Int) {
@@ -282,7 +304,6 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(bookName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 34.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                    Icon(Icons.Default.ArrowDropDown, null, tint = Color.White, modifier = Modifier.size(34.dp))
                     Spacer(Modifier.width(10.dp))
                     Text("$chapter", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 34.sp)
                     Icon(Icons.Default.ArrowDropDown, null, tint = Color.White, modifier = Modifier.size(34.dp))
@@ -387,7 +408,8 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
                     onLongClick = {
                         selected = if (v.verse in selected) selected - v.verse else selected + v.verse
                         if (selected.isEmpty()) showColors = false
-                    }
+                    },
+                    flash = (v.verse == flash)
                 )
             }
             item(key = "nav") {
@@ -408,7 +430,7 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
     )
 
     if (picker) {
-        BiblePickerSheet(trId, book, chapter, onPick = { b, c -> picker = false; go(b, c) }, onDismiss = { picker = false })
+        BiblePickerSheet(trId, book, chapter, onPick = { b, c, v -> picker = false; go(b, c, v) }, onDismiss = { picker = false })
     }
     noteFor?.let { k ->
         var text by remember(k) { mutableStateOf(UserStore.notes[k] ?: "") }
@@ -467,11 +489,12 @@ private fun NavButton(text: String, icon: ImageVector, left: Boolean, modifier: 
 // ------------------------------------------------------------------ Sélecteur livre / chapitre
 
 @Composable
-fun BiblePickerSheet(trId: Int, curBook: Int, curChapter: Int, onPick: (Int, Int) -> Unit, onDismiss: () -> Unit) {
+fun BiblePickerSheet(trId: Int, curBook: Int, curChapter: Int, onPick: (Int, Int, Int) -> Unit, onDismiss: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var step by remember { mutableStateOf(0) }
     var pb by remember { mutableStateOf(curBook) }
+    var pc by remember { mutableStateOf(curChapter) }
     val h = (LocalConfiguration.current.screenHeightDp * 0.78f).dp
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = state, containerColor = cs.surface) {
         if (step == 0) {
@@ -490,7 +513,7 @@ fun BiblePickerSheet(trId: Int, curBook: Int, curChapter: Int, onPick: (Int, Int
                 gridItems(new, key = { it.book }) { b -> BookCell(b, trId, b.book == curBook) { pb = b.book; step = 1 } }
                 item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(24.dp)) }
             }
-        } else {
+        } else if (step == 1) {
             val n = Repo.chapterCount(pb)
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 14.dp),
@@ -519,7 +542,7 @@ fun BiblePickerSheet(trId: Int, curBook: Int, curChapter: Int, onPick: (Int, Int
                             .height(52.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .background(if (cur) cs.primary else cs.surfaceVariant)
-                            .clickable { onPick(pb, c) },
+                            .clickable { pc = c; step = 2 },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -527,6 +550,44 @@ fun BiblePickerSheet(trId: Int, curBook: Int, curChapter: Int, onPick: (Int, Int
                             color = if (cur) cs.onPrimary else cs.onSurface
                         )
                     }
+                }
+                item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(24.dp)) }
+            }
+        } else {
+            val nv = remember(pb, pc) { Repo.verseCount(trId, pb, pc) }
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier.size(40.dp).clip(CircleShape).background(cs.surfaceVariant).clickable { step = 1 },
+                    contentAlignment = Alignment.Center
+                ) { Icon(Icons.Default.KeyboardArrowLeft, "Miverina") }
+                Text(
+                    Repo.bookName(trId, pb) + " " + pc, fontWeight = FontWeight.Bold, fontSize = 20.sp,
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+            }
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(62.dp),
+                contentPadding = PaddingValues(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().height(h - 48.dp)
+            ) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(14.dp))
+                            .background(cs.primaryContainer).clickable { onPick(pb, pc, 0) },
+                        contentAlignment = Alignment.Center
+                    ) { Text("Toko manontolo", fontWeight = FontWeight.SemiBold, color = cs.primary) }
+                }
+                gridItems((1..nv).toList(), key = { it }) { v ->
+                    Box(
+                        Modifier.height(52.dp).clip(RoundedCornerShape(14.dp))
+                            .background(cs.surfaceVariant).clickable { onPick(pb, pc, v) },
+                        contentAlignment = Alignment.Center
+                    ) { Text("$v", fontWeight = FontWeight.SemiBold) }
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(24.dp)) }
             }
@@ -675,7 +736,7 @@ fun CompareScreen(book0: Int, chapter0: Int, verses0: List<Int>) {
         }
     )
     if (picker) {
-        BiblePickerSheet(trId, book, chapter, onPick = { b, c -> picker = false; nav.replace(Screen.Compare(b, c)) }, onDismiss = { picker = false })
+        BiblePickerSheet(trId, book, chapter, onPick = { b, c, v -> picker = false; nav.replace(Screen.Compare(b, c, if (v > 0) listOf(v) else emptyList())) }, onDismiss = { picker = false })
     }
 }
 
