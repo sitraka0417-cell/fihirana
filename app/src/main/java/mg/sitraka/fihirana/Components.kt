@@ -61,6 +61,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Random
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Couleur d'en-tête propre à chaque langue de cantiques. */
 fun heroColorFor(lang: String): Color = when (lang) {
@@ -91,30 +98,47 @@ private fun DrawScope.drawArt(seed: Int, s: Size) {
     }
 }
 
-/** En-tête « hero » : dégradé + motifs + voile sombre en bas. */
+/** En-tête « hero » : image de fond (ou dégradé + motifs) + voile sombre. */
 @Composable
 fun HeroBox(
     height: Dp,
     seed: Int,
     base: Color? = null,
+    image: Int? = null,
     modifier: Modifier = Modifier,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val ex = LocalExtra.current
+    val ctx = LocalContext.current
     val a = base ?: ex.heroA
     val b = if (base != null) lerp(base, Color(0xFF070B12), 0.72f) else ex.heroB
+    val bmp by produceState<ImageBitmap?>(null, image) {
+        value = if (image == null) null else withContext(Dispatchers.IO) { Bg.load(ctx, image) }
+    }
+    val pic = bmp
     Box(
         modifier
             .fillMaxWidth()
             .height(height)
             .background(Brush.verticalGradient(listOf(a, b)))
     ) {
-        Canvas(Modifier.matchParentSizeCompat()) { drawArt(seed, size) }
-        Box(
-            Modifier
-                .matchParentSizeCompat()
-                .background(Brush.verticalGradient(0.4f to Color.Transparent, 1f to Color(0xB3000000)))
-        )
+        if (pic != null) {
+            Image(bitmap = pic, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.verticalGradient(
+                        0f to Color(0x80000000), 0.3f to Color(0x14000000),
+                        0.55f to Color(0x33000000), 1f to Color(0xD9000000)
+                    )
+                )
+            )
+        } else {
+            Canvas(Modifier.fillMaxSize()) { drawArt(seed, size) }
+            Box(
+                Modifier.fillMaxSize()
+                    .background(Brush.verticalGradient(0.4f to Color.Transparent, 1f to Color(0xB3000000)))
+            )
+        }
         content()
     }
 }
@@ -168,6 +192,7 @@ fun HeroScreen(
     listState: LazyListState,
     modifier: Modifier = Modifier,
     base: Color? = null,
+    image: Int? = null,
     contentPadding: PaddingValues = PaddingValues(bottom = 96.dp),
     actions: @Composable RowScope.() -> Unit = {},
     heroContent: @Composable BoxScope.() -> Unit,
@@ -185,7 +210,7 @@ fun HeroScreen(
     val barBg by animateColorAsState(if (scrolled) barBase else Color.Transparent, label = "bar")
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(state = listState, contentPadding = contentPadding, modifier = Modifier.fillMaxSize()) {
-            item(key = "hero") { HeroBox(heroHeight, seed, base, content = heroContent) }
+            item(key = "hero") { HeroBox(heroHeight, seed, base, image, content = heroContent) }
             body()
         }
         Row(

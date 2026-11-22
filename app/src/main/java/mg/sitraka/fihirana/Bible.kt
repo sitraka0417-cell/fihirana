@@ -1,10 +1,12 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 
 package mg.sitraka.fihirana
 
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -136,6 +138,7 @@ private fun VerseRow(
     bookmarked: Boolean,
     hasNote: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
     val ex = LocalExtra.current
@@ -164,7 +167,7 @@ private fun VerseRow(
                     .clip(RoundedCornerShape(12.dp))
                     .background(bg)
                     .then(if (selected) Modifier.border(1.5.dp, cs.primary, RoundedCornerShape(12.dp)) else Modifier)
-                    .clickable(onClick = onClick)
+                    .combinedClickable(onClick = onClick, onLongClick = onLongClick)
                     .padding(horizontal = 10.dp, vertical = 7.dp)
             ) {
                 Text(
@@ -256,6 +259,7 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
     HeroScreen(
         title = "$bookName $chapter",
         heroHeight = 270.dp,
+        image = Bg.book(book),
         seed = book / 10,
         base = base,
         listState = listState,
@@ -263,19 +267,19 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
         contentPadding = PaddingValues(bottom = 150.dp),
         actions = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (audio.isNotEmpty()) {
-                    val on = Audio.key == audioKey && Audio.playing
-                    GlassButton(if (on) Ico.Pause else Icons.Default.PlayArrow, "Henoy") {
-                        Audio.play(audioKey, "$bookName $chapter · ${tr.short}", audio)
-                    }
-                }
                 GlassButton(Ico.Compare, "Fampitahana") { nav.go(Screen.Compare(book, chapter)) }
                 GlassButton(Icons.Default.Search, "Hikaroka") { nav.go(Screen.BibleSearch) }
             }
         },
         heroContent = {
             Column(Modifier.align(Alignment.BottomStart).padding(horizontal = 18.dp, vertical = 18.dp)) {
-                Row(Modifier.clickable { picker = true }, verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.combinedClickable(
+                        onClick = { picker = true },
+                        onLongClick = { if (verses.isNotEmpty()) selected = verses.map { it.verse }.toSet() }
+                    ),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(bookName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 34.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     Icon(Icons.Default.ArrowDropDown, null, tint = Color.White, modifier = Modifier.size(34.dp))
                     Spacer(Modifier.width(10.dp))
@@ -337,24 +341,15 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
                                 Toast.makeText(ctx, "Voasoratra: $refText", Toast.LENGTH_SHORT).show()
                                 selected = emptySet()
                             }
-                            SelAction(Icons.Default.Share, "Zarao") {
-                                val i = Intent(Intent.ACTION_SEND)
-                                i.type = "text/plain"
-                                i.putExtra(Intent.EXTRA_TEXT, textOut() + "\n— Fihirana & Baiboly")
-                                ctx.startActivity(Intent.createChooser(i, "Zarao"))
-                            }
+                            SelAction(Ico.Highlight, "Loko", active = showColors) { showColors = !showColors }
                             SelAction(if (allFav) Ico.BookmarkFilled else Ico.Bookmark, "Tiana", active = allFav) {
                                 UserStore.toggleVerses(selKeys)
                                 selected = emptySet()
                             }
-                            SelAction(Ico.Highlight, "Loko", active = showColors) { showColors = !showColors }
-                            if (selKeys.size == 1) SelAction(Ico.Note, "Naoty") { noteFor = selKeys[0] }
                             SelAction(Ico.Compare, "Hampitaha") {
-                                val mn = selected.minOrNull() ?: 0
-                                val mx = selected.maxOrNull() ?: 0
-                                nav.go(Screen.Compare(book, chapter, mn, mx))
+                                nav.go(Screen.Compare(book, chapter, selected.sorted()))
                             }
-                            SelAction(Icons.Default.Close, "Akatony") { selected = emptySet(); showColors = false }
+                            SelAction(Icons.Default.Close, "Foano") { selected = emptySet(); showColors = false }
                         }
                     }
                 }
@@ -383,6 +378,12 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
                     bookmarked = UserStore.isFavVerse(v.key),
                     hasNote = UserStore.notes.containsKey(v.key),
                     onClick = {
+                        if (selected.isNotEmpty()) {
+                            selected = if (v.verse in selected) selected - v.verse else selected + v.verse
+                            if (selected.isEmpty()) showColors = false
+                        }
+                    },
+                    onLongClick = {
                         selected = if (v.verse in selected) selected - v.verse else selected + v.verse
                         if (selected.isEmpty()) showColors = false
                     }
@@ -397,7 +398,7 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
                     NavButton("Toko manaraka", Icons.Default.KeyboardArrowRight, false, Modifier.weight(1f)) { step(1) }
                 }
                 Text(
-                    "Tsindrio ny andininy iray na maromaro mba hahafahana mandrafitra, mamaritra loko, manampy naoty na mampitaha.",
+                    "Tazony lava ny andininy iray (na ny lohateny toko) mba hisafidy azy. Avy eo tsindrio ny hafa hanampiana na hanesorana. Hita eo ambany ny: tahaka, loko, tiana, hampitaha, foano.",
                     color = ex.muted, fontSize = 12.sp, textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp)
                 )
@@ -553,14 +554,13 @@ private fun BookCell(b: BibleBook, trId: Int, current: Boolean, onClick: () -> U
 // ------------------------------------------------------------------ Comparaison
 
 @Composable
-fun CompareScreen(book0: Int, chapter0: Int, from0: Int, to0: Int) {
+fun CompareScreen(book0: Int, chapter0: Int, verses0: List<Int>) {
     val ex = LocalExtra.current
     val cs = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
     var book by remember { mutableStateOf(book0) }
     var chapter by remember { mutableStateOf(chapter0) }
-    var from by remember { mutableStateOf(from0) }
-    var to by remember { mutableStateOf(to0) }
+    var sel by remember { mutableStateOf(verses0) }
     var picker by remember { mutableStateOf(false) }
     val chosen = Prefs.compareTrs.filter { id -> Repo.trs.any { it.id == id } }.sorted()
     val data by produceState(emptyMap<Int, Map<Int, Verse>>(), chosen, book, chapter) {
@@ -568,8 +568,7 @@ fun CompareScreen(book0: Int, chapter0: Int, from0: Int, to0: Int) {
     }
     val listState = rememberLazyListState()
     val allVerses = data.values.flatMap { it.keys }.toSortedSet().toList()
-    val range = if (from > 0) from..(if (to > 0) to else from) else null
-    val shown = if (range != null) allVerses.filter { it in range } else allVerses
+    val shown = if (sel.isNotEmpty()) allVerses.filter { it in sel } else allVerses
     val trId = Prefs.bibleTr
 
     fun step(d: Int) {
@@ -583,13 +582,14 @@ fun CompareScreen(book0: Int, chapter0: Int, from0: Int, to0: Int) {
             if (idx >= Repo.books.size - 1) return
             b = Repo.books[idx + 1].book; c = 1
         }
-        book = b; chapter = c; from = 0; to = 0
+        book = b; chapter = c; sel = emptyList()
         scope.launch { listState.scrollToItem(0) }
     }
 
     HeroScreen(
         title = "Fampitahana · ${refString(trId, book, chapter, emptyList())}",
         heroHeight = 230.dp,
+        image = Bg.book(book),
         seed = 91,
         listState = listState,
         modifier = Modifier.swipeNav("$book:$chapter", { step(-1) }, { step(1) }),
@@ -598,8 +598,7 @@ fun CompareScreen(book0: Int, chapter0: Int, from0: Int, to0: Int) {
                 Text("Fampitahana Baiboly", color = Color(0xCCFFFFFF), fontSize = 14.sp)
                 Row(Modifier.clickable { picker = true }, verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        if (range != null) refString(trId, book, chapter, range.toList())
-                        else refString(trId, book, chapter, emptyList()),
+                        refString(trId, book, chapter, sel),
                         color = Color.White, fontWeight = FontWeight.Bold, fontSize = 30.sp,
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)
                     )
@@ -628,7 +627,7 @@ fun CompareScreen(book0: Int, chapter0: Int, from0: Int, to0: Int) {
                     ) {
                         Chip("‹ Toko teo aloha", false, { step(-1) })
                         Chip("Toko manaraka ›", false, { step(1) })
-                        if (range != null) Chip("Toko manontolo", false, { from = 0; to = 0 })
+                        if (sel.isNotEmpty()) Chip("Toko manontolo", false, { sel = emptyList() })
                     }
                 }
             }
@@ -675,7 +674,7 @@ fun CompareScreen(book0: Int, chapter0: Int, from0: Int, to0: Int) {
         }
     )
     if (picker) {
-        BiblePickerSheet(trId, book, chapter, onPick = { b, c -> picker = false; book = b; chapter = c; from = 0; to = 0 }, onDismiss = { picker = false })
+        BiblePickerSheet(trId, book, chapter, onPick = { b, c -> picker = false; book = b; chapter = c; sel = emptyList() }, onDismiss = { picker = false })
     }
 }
 
@@ -710,6 +709,7 @@ fun BibleSearchScreen() {
     HeroScreen(
         title = "Fikarohana",
         heroHeight = 220.dp,
+        image = Bg.bibleFond,
         seed = 12,
         listState = listState,
         heroContent = {

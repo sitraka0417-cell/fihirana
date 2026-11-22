@@ -188,7 +188,7 @@ fun ScreenHost(s: Screen) {
         is Screen.HymnList -> HymnListScreen(s.lang)
         is Screen.HymnView -> HymnScreen(s.lang, s.num)
         is Screen.BibleRead -> BibleReadScreen(s.book, s.chapter, s.verse)
-        is Screen.Compare -> CompareScreen(s.book, s.chapter, s.from, s.to)
+        is Screen.Compare -> CompareScreen(s.book, s.chapter, s.verses)
         Screen.BibleSearch -> BibleSearchScreen()
         Screen.Favorites -> FavoritesScreen()
         Screen.SettingsScreen -> SettingsScreen()

@@ -1,6 +1,7 @@
 package mg.sitraka.fihirana
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
@@ -123,6 +124,8 @@ fun AppTheme(content: @Composable () -> Unit) {
         hairline = if (dark) Color(0xFF262D34) else Color(0xFFE2E6EA),
     )
     CompositionLocalProvider(LocalExtra provides extra) {
-        MaterialTheme(colorScheme = scheme, typography = AppTypography, content = content)
+        MaterialTheme(colorScheme = scheme, typography = AppTypography) {
+            CompositionLocalProvider(LocalContentColor provides scheme.onBackground, content = content)
+        }
     }
 }

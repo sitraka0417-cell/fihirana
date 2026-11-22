@@ -70,6 +70,7 @@ fun HomeScreen() {
     HeroScreen(
         title = "Fihirana & Baiboly",
         heroHeight = 270.dp,
+        image = Bg.hymns[1],
         seed = 5,
         listState = listState,
         heroContent = {

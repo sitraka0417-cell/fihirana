@@ -9,7 +9,7 @@ sealed interface Screen {
     data class HymnList(val lang: String) : Screen
     data class HymnView(val lang: String, val num: Int) : Screen
     data class BibleRead(val book: Int, val chapter: Int, val verse: Int = 0) : Screen
-    data class Compare(val book: Int, val chapter: Int, val from: Int = 0, val to: Int = 0) : Screen
+    data class Compare(val book: Int, val chapter: Int, val verses: List<Int> = emptyList()) : Screen
     data object BibleSearch : Screen
     data object Favorites : Screen
     data object SettingsScreen : Screen

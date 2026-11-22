@@ -72,6 +72,8 @@ import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 
 // ======================================================================= Liste
 @Composable
@@ -94,7 +96,6 @@ fun HymnRow(h: Hymn, snippet: String? = null, onClick: () -> Unit) {
             }
         }
         if (UserStore.isFavHymn(h)) Icon(Icons.Default.Favorite, null, tint = cs.primary, modifier = Modifier.size(18.dp))
-        if (h.hasAudio) Icon(Ico.Music, null, tint = ex.muted, modifier = Modifier.padding(start = 8.dp).size(18.dp))
     }
 }
 
@@ -166,7 +167,8 @@ fun HymnListScreen(lang: String) {
 
     HeroScreen(
         title = info.name,
-        heroHeight = 250.dp,
+        heroHeight = 270.dp,
+        image = Bg.hymn(lang, 0),
         seed = lang.hashCode(),
         base = heroColorFor(lang),
         listState = listState,
@@ -318,7 +320,8 @@ fun HymnScreen(lang: String, num: Int) {
     HeroScreen(
         title = "${h.num} - ${h.title}",
         heroHeight = heroDp,
-        modifier = Modifier.swipeNav(
+        image = Bg.hymn(lang, num),
+        modifier = if (present) Modifier else Modifier.swipeNav(
             key = "$lang:$num",
             onPrev = { if (Repo.hymn(lang, num - 1) != null) nav.replace(Screen.HymnView(lang, num - 1)) },
             onNext = { if (Repo.hymn(lang, num + 1) != null) nav.replace(Screen.HymnView(lang, num + 1)) }
@@ -362,6 +365,9 @@ fun HymnScreen(lang: String, num: Int) {
             }
         },
         overlay = {
+            if (present && stanzas.isNotEmpty()) {
+                PresentOverlay(h, stanzas) { present = false }
+            } else {
             val off = if (listState.firstVisibleItemIndex == 0) listState.firstVisibleItemScrollOffset else Int.MAX_VALUE
             if (off < heroPx) {
                 Column(
@@ -373,15 +379,6 @@ fun HymnScreen(lang: String, num: Int) {
                 ) {
                     RoundAction(if (fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Tiana", active = fav) { UserStore.toggleHymn(h) }
                     RoundAction(Ico.Present, "Fampisehoana") { if (stanzas.isNotEmpty()) present = true }
-                    if (canPlay) {
-                        val on = Audio.key == audioKey && Audio.playing
-                        RoundAction(if (on) Ico.Pause else Icons.Default.PlayArrow, "Henoy", active = Audio.key == audioKey) {
-                            Audio.play(audioKey, "${h.num} · ${h.title}", sources)
-                        }
-                        if (local != null) RoundAction(Ico.Check, "Voatahiry", active = true) {
-                            Toast.makeText(ctx, "Efa voatahiry ao amin'ny finday", Toast.LENGTH_SHORT).show()
-                        } else RoundAction(Ico.Download, "Ampidino") { Downloads.enqueue(h) }
-                    }
                 }
             }
             Row(
@@ -407,6 +404,7 @@ fun HymnScreen(lang: String, num: Int) {
                     .clickable { pad = true },
                 contentAlignment = Alignment.Center
             ) { Icon(Ico.Dialpad, "Laharana", tint = cs.onPrimary) }
+            }
         },
         body = {
             item(key = "gap") { Spacer(Modifier.height(24.dp)) }
@@ -450,7 +448,7 @@ fun HymnScreen(lang: String, num: Int) {
             onGo = { pad = false; nav.replace(Screen.HymnView(lang, it)) }
         )
     }
-    if (present && stanzas.isNotEmpty()) PresentDialog(h, stanzas) { present = false }
+    androidx.activity.compose.BackHandler(present) { present = false }
     if (fontDlg) FontDialog { fontDlg = false }
 }
 
@@ -499,18 +497,15 @@ fun FontDialog(onDismiss: () -> Unit) {
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun PresentDialog(h: Hymn, stanzas: List<Stanza>, onClose: () -> Unit) {
+fun PresentOverlay(h: Hymn, stanzas: List<Stanza>, onClose: () -> Unit) {
     val pager = rememberPagerState(pageCount = { stanzas.size })
     val view = LocalView.current
     DisposableEffect(Unit) {
         view.keepScreenOn = true
         onDispose { view.keepScreenOn = false }
     }
-    Dialog(
-        onDismissRequest = onClose,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
-    ) {
-        Box(Modifier.fillMaxSize().background(Color(0xFF05070A))) {
+    run {
+        Box(Modifier.fillMaxSize().background(Color(0xFF05070A)).pointerInput(Unit) { detectTapGestures { } }) {
             HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
                 val s = stanzas[page]
                 val lines = s.text.count { it == '\n' } + 1
