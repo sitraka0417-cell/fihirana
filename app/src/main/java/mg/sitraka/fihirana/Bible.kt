@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -204,8 +205,10 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
     val cs = MaterialTheme.colorScheme
     val ex = LocalExtra.current
     val scope = rememberCoroutineScope()
-    var book by remember { mutableStateOf(book0) }
-    var chapter by remember { mutableStateOf(chapter0) }
+    val swipe = LocalSwipe.current
+    val active = LocalPageActive.current
+    val book = book0
+    val chapter = chapter0
     val trId = Prefs.bibleTr
     val tr = Repo.tr(trId)
     val verses by produceState(emptyList<Verse>(), trId, book, chapter) {
@@ -220,7 +223,7 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
     var noteFor by remember { mutableStateOf<Long?>(null) }
     var jump by remember { mutableStateOf(verse0) }
     val listState = rememberLazyListState()
-    LaunchedEffect(book, chapter) { Prefs.rememberBible(book, chapter) }
+    LaunchedEffect(book, chapter) { if (active) Prefs.rememberBible(book, chapter) }
     LaunchedEffect(verses) {
         if (jump > 0 && verses.isNotEmpty()) {
             val i = verses.indexOfFirst { it.verse == jump }
@@ -230,8 +233,7 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
     }
 
     fun go(b: Int, c: Int) {
-        book = b; chapter = c; jump = 0; showColors = false
-        scope.launch { listState.scrollToItem(0) }
+        nav.replace(Screen.BibleRead(b, c))
     }
 
     fun step(d: Int) {
@@ -263,7 +265,6 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
         seed = book / 10,
         base = base,
         listState = listState,
-        modifier = Modifier.swipeNav("$book:$chapter", { step(-1) }, { step(1) }),
         contentPadding = PaddingValues(bottom = 150.dp),
         actions = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -336,9 +337,9 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
                             Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 6.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceAround
                         ) {
-                            SelAction(Ico.Copy, "Tahaka") {
+                            SelAction(Ico.Copy, "Adika") {
                                 clipboard.setText(AnnotatedString(textOut()))
-                                Toast.makeText(ctx, "Voasoratra: $refText", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(ctx, "Voadika: $refText", Toast.LENGTH_SHORT).show()
                                 selected = emptySet()
                             }
                             SelAction(Ico.Highlight, "Loko", active = showColors) { showColors = !showColors }
@@ -394,11 +395,11 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
                     Modifier.fillMaxWidth().padding(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    NavButton("Toko teo aloha", Icons.Default.KeyboardArrowLeft, true, Modifier.weight(1f)) { step(-1) }
-                    NavButton("Toko manaraka", Icons.Default.KeyboardArrowRight, false, Modifier.weight(1f)) { step(1) }
+                    NavButton("Toko teo aloha", Icons.Default.KeyboardArrowLeft, true, Modifier.weight(1f)) { swipe.prev() }
+                    NavButton("Toko manaraka", Icons.Default.KeyboardArrowRight, false, Modifier.weight(1f)) { swipe.next() }
                 }
                 Text(
-                    "Tazony lava ny andininy iray (na ny lohateny toko) mba hisafidy azy. Avy eo tsindrio ny hafa hanampiana na hanesorana. Hita eo ambany ny: tahaka, loko, tiana, hampitaha, foano.",
+                    "Tazony lava ny andininy iray (na ny lohateny toko) mba hisafidy azy. Avy eo tsindrio ny hafa hanampiana na hanesorana. Hita eo ambany ny: adika, loko, tiana, hampitaha, foano.",
                     color = ex.muted, fontSize = 12.sp, textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 28.dp)
                 )
@@ -437,11 +438,11 @@ private fun SelAction(icon: ImageVector, label: String, active: Boolean = false,
             .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 6.dp, vertical = 6.dp)
-            .width(48.dp),
+            .widthIn(min = 56.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(icon, label, tint = if (active) cs.primary else cs.onSurface, modifier = Modifier.size(24.dp))
-        Text(label, fontSize = 10.sp, color = if (active) cs.primary else cs.onSurfaceVariant, maxLines = 1)
+        Text(label, fontSize = 11.sp, color = if (active) cs.primary else cs.onSurfaceVariant, maxLines = 1, softWrap = false)
     }
 }
 
@@ -558,8 +559,10 @@ fun CompareScreen(book0: Int, chapter0: Int, verses0: List<Int>) {
     val ex = LocalExtra.current
     val cs = MaterialTheme.colorScheme
     val scope = rememberCoroutineScope()
-    var book by remember { mutableStateOf(book0) }
-    var chapter by remember { mutableStateOf(chapter0) }
+    val nav = LocalNav.current
+    val swipe = LocalSwipe.current
+    val book = book0
+    val chapter = chapter0
     var sel by remember { mutableStateOf(verses0) }
     var picker by remember { mutableStateOf(false) }
     val chosen = Prefs.compareTrs.filter { id -> Repo.trs.any { it.id == id } }.sorted()
@@ -582,8 +585,7 @@ fun CompareScreen(book0: Int, chapter0: Int, verses0: List<Int>) {
             if (idx >= Repo.books.size - 1) return
             b = Repo.books[idx + 1].book; c = 1
         }
-        book = b; chapter = c; sel = emptyList()
-        scope.launch { listState.scrollToItem(0) }
+        nav.replace(Screen.Compare(b, c))
     }
 
     HeroScreen(
@@ -592,7 +594,6 @@ fun CompareScreen(book0: Int, chapter0: Int, verses0: List<Int>) {
         image = Bg.book(book),
         seed = 91,
         listState = listState,
-        modifier = Modifier.swipeNav("$book:$chapter", { step(-1) }, { step(1) }),
         heroContent = {
             Column(Modifier.align(Alignment.BottomStart).padding(18.dp)) {
                 Text("Fampitahana Baiboly", color = Color(0xCCFFFFFF), fontSize = 14.sp)
@@ -625,8 +626,8 @@ fun CompareScreen(book0: Int, chapter0: Int, verses0: List<Int>) {
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Chip("‹ Toko teo aloha", false, { step(-1) })
-                        Chip("Toko manaraka ›", false, { step(1) })
+                        Chip("‹ Toko teo aloha", false, { swipe.prev() })
+                        Chip("Toko manaraka ›", false, { swipe.next() })
                         if (sel.isNotEmpty()) Chip("Toko manontolo", false, { sel = emptyList() })
                     }
                 }
@@ -674,7 +675,7 @@ fun CompareScreen(book0: Int, chapter0: Int, verses0: List<Int>) {
         }
     )
     if (picker) {
-        BiblePickerSheet(trId, book, chapter, onPick = { b, c -> picker = false; book = b; chapter = c; sel = emptyList() }, onDismiss = { picker = false })
+        BiblePickerSheet(trId, book, chapter, onPick = { b, c -> picker = false; nav.replace(Screen.Compare(b, c)) }, onDismiss = { picker = false })
     }
 }
 

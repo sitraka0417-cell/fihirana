@@ -172,7 +172,15 @@ fun MainShell() {
                         transitionSpec = {
                             (fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 24 }) togetherWith fadeOut(tween(140))
                         },
-                        label = "screens"
+                        label = "screens",
+                        contentKey = { s ->
+                            when (s) {
+                                is Screen.HymnView -> "hymn:" + s.lang
+                                is Screen.BibleRead -> "bible"
+                                is Screen.Compare -> "compare"
+                                else -> s
+                            }
+                        }
                     ) { s -> ScreenHost(s) }
                 }
                 if (playerOn) PlayerBar()
@@ -182,7 +190,7 @@ fun MainShell() {
 }
 
 @Composable
-fun ScreenHost(s: Screen) {
+fun ScreenPage(s: Screen) {
     when (s) {
         Screen.Home -> HomeScreen()
         is Screen.HymnList -> HymnListScreen(s.lang)

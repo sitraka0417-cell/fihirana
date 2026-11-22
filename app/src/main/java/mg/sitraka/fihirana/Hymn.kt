@@ -300,9 +300,15 @@ fun HymnScreen(lang: String, num: Int) {
     val melodies by produceState(emptyList<Int>(), lang, num) {
         value = if (lang == "mg") withContext(Dispatchers.IO) { Repo.sameMelody(num) } else emptyList()
     }
-    LaunchedEffect(lang, num) { Prefs.rememberHymn(lang, num) }
+    val active = LocalPageActive.current
+    val swipe = LocalSwipe.current
+    LaunchedEffect(lang, num) { if (active) Prefs.rememberHymn(lang, num) }
     var pad by remember { mutableStateOf(false) }
     var present by remember { mutableStateOf(false) }
+    androidx.compose.runtime.DisposableEffect(present, active) {
+        if (active) SwipeLock.locked = present
+        onDispose { if (active) SwipeLock.locked = false }
+    }
     var fontDlg by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val scale = Prefs.fontScale
@@ -321,11 +327,6 @@ fun HymnScreen(lang: String, num: Int) {
         title = "${h.num} - ${h.title}",
         heroHeight = heroDp,
         image = Bg.hymn(lang, num),
-        modifier = if (present) Modifier else Modifier.swipeNav(
-            key = "$lang:$num",
-            onPrev = { if (Repo.hymn(lang, num - 1) != null) nav.replace(Screen.HymnView(lang, num - 1)) },
-            onNext = { if (Repo.hymn(lang, num + 1) != null) nav.replace(Screen.HymnView(lang, num + 1)) }
-        ),
         seed = h.num * 31 + lang.hashCode(),
         base = heroColorFor(lang),
         listState = listState,
@@ -385,12 +386,8 @@ fun HymnScreen(lang: String, num: Int) {
                 Modifier.align(Alignment.BottomStart).navigationBarsPadding().padding(18.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                SmallRound(Icons.Default.KeyboardArrowLeft, "Teo aloha") {
-                    if (Repo.hymn(lang, num - 1) != null) nav.replace(Screen.HymnView(lang, num - 1))
-                }
-                SmallRound(Icons.Default.KeyboardArrowRight, "Manaraka") {
-                    if (Repo.hymn(lang, num + 1) != null) nav.replace(Screen.HymnView(lang, num + 1))
-                }
+                SmallRound(Icons.Default.KeyboardArrowLeft, "Teo aloha") { swipe.prev() }
+                SmallRound(Icons.Default.KeyboardArrowRight, "Manaraka") { swipe.next() }
                 SmallRound(null, "Aa", text = "Aa") { fontDlg = true }
             }
             Box(
