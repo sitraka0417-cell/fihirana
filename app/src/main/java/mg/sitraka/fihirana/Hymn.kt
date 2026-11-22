@@ -502,7 +502,8 @@ fun PresentOverlay(h: Hymn, stanzas: List<Stanza>, onClose: () -> Unit) {
     val pager = rememberPagerState(pageCount = { stanzas.size })
     val scope = rememberCoroutineScope()
     var showRef by remember { mutableStateOf(false) }
-    val refrain = stanzas.firstOrNull { it.isRefrain }
+    var refIdx by remember { mutableStateOf(-1) }
+    val refrain = if (refIdx in stanzas.indices) stanzas[refIdx] else stanzas.firstOrNull { it.isRefrain }
     val view = LocalView.current
     DisposableEffect(Unit) {
         view.keepScreenOn = true
@@ -597,6 +598,23 @@ fun PresentOverlay(h: Hymn, stanzas: List<Stanza>, onClose: () -> Unit) {
                                 }
                                 if (nxt >= 0) scope.launch { pager.scrollToPage(nxt) }
                             } else {
+                                // refrain qui correspond à la page courante :
+                                // 1) la page elle-même, 2) le refrain juste après, 3) le dernier avant, 4) le premier après
+                                val cur = pager.currentPage
+                                var pick = -1
+                                if (stanzas[cur].isRefrain) pick = cur
+                                else if (cur + 1 < stanzas.size && stanzas[cur + 1].isRefrain) pick = cur + 1
+                                if (pick < 0) {
+                                    for (i in cur downTo 0) {
+                                        if (stanzas[i].isRefrain) { pick = i; break }
+                                    }
+                                }
+                                if (pick < 0) {
+                                    for (i in cur until stanzas.size) {
+                                        if (stanzas[i].isRefrain) { pick = i; break }
+                                    }
+                                }
+                                refIdx = pick
                                 showRef = true
                             }
                         },
