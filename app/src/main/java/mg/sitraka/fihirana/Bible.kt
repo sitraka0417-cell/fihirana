@@ -12,6 +12,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -249,7 +250,17 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
     LaunchedEffect(verses) {
         if (jump > 0 && verses.isNotEmpty()) {
             val i = verses.indexOfFirst { it.verse == jump }
-            if (i >= 0) listState.scrollToItem(i + 2)
+            if (i >= 0) {
+                val idx = i + 2
+                listState.scrollToItem(idx)
+                androidx.compose.runtime.withFrameNanos { }
+                val info = listState.layoutInfo
+                val target = info.visibleItemsInfo.firstOrNull { x -> x.index == idx }
+                if (target != null) {
+                    val vp = info.viewportEndOffset - info.viewportStartOffset
+                    if (target.size < vp) listState.scrollBy((target.offset - (vp - target.size) / 2).toFloat())
+                }
+            }
             jump = 0
         }
     }
@@ -290,6 +301,10 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
         contentPadding = PaddingValues(bottom = 150.dp),
         actions = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val aItem = AudioItems.bible(trId, book, chapter, audio)
+                GlassButton(
+                    if (Audio.key == aItem.key && Audio.playing) Ico.Pause else Icons.Default.PlayArrow, "Henoy"
+                ) { AudioUi.request(ctx, aItem) }
                 GlassButton(Ico.Compare, "Fampitahana") { nav.go(Screen.Compare(book, chapter)) }
                 GlassButton(Icons.Default.Search, "Hikaroka") { nav.go(Screen.BibleSearch) }
             }

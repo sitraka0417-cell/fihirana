@@ -317,10 +317,7 @@ fun HymnScreen(lang: String, num: Int) {
     val listState = rememberLazyListState()
     val scale = Prefs.fontScale
     val fav = UserStore.isFavHymn(h)
-    val local = Downloads.localPath(h)
-    val audioKey = "h:${h.id}"
-    val sources = listOfNotNull(local) + listOf(h.url, h.dl).filter { it.isNotBlank() }
-    val canPlay = sources.isNotEmpty()
+    val audioItem = remember(h) { AudioItems.hymn(h) }
     val heroDp = 330.dp
     val density = LocalDensity.current
     val heroPx = with(density) { heroDp.toPx() }
@@ -384,6 +381,10 @@ fun HymnScreen(lang: String, num: Int) {
                 ) {
                     RoundAction(if (fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Tiana", active = fav) { UserStore.toggleHymn(h) }
                     RoundAction(Ico.Present, "Fampisehoana") { if (stanzas.isNotEmpty()) present = true }
+                    RoundAction(
+                        if (Audio.key == audioItem.key && Audio.playing) Ico.Pause else Icons.Default.PlayArrow,
+                        "Henoy", active = Audio.key == audioItem.key
+                    ) { AudioUi.request(ctx, audioItem) }
                 }
             }
             Row(
@@ -578,6 +579,24 @@ fun PresentOverlay(h: Hymn, stanzas: List<Stanza>, onClose: () -> Unit) {
                     Modifier.size(40.dp).clip(CircleShape).background(Color(0x33FFFFFF)).clickable(onClick = onClose),
                     contentAlignment = Alignment.Center
                 ) { Icon(Icons.Default.Close, "Akatony", tint = Color.White) }
+            }
+            val aItem = remember(h) { AudioItems.hymn(h) }
+            val aCtx = LocalContext.current
+            Box(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .navigationBarsPadding()
+                    .padding(end = 20.dp, bottom = 22.dp)
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(if (Audio.key == aItem.key) Color(0xFF2DD4BF) else Color(0x33FFFFFF))
+                    .clickable { AudioUi.request(aCtx, aItem) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (Audio.key == aItem.key && Audio.playing) Ico.Pause else Icons.Default.PlayArrow, "Henoy",
+                    tint = if (Audio.key == aItem.key) Color(0xFF05070A) else Color.White
+                )
             }
             if (refrain != null) {
                 Box(

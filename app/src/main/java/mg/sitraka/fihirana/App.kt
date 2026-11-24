@@ -8,6 +8,7 @@ class App : Application() {
         Prefs.init(this)
         UserStore.init(this)
         Audio.init(this)
-        Downloads.init(this)
+        AudioStore.init(this)
+        Dl.init(this)
     }
 }

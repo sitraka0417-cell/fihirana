@@ -157,6 +157,18 @@ object Repo {
 
     fun chapterCount(book: Int): Int = bookOf(book).chapters
 
+    class AudioRow(val book: Int, val chapter: Int, val urls: List<String>)
+
+    private val audioCache = HashMap<Int, List<AudioRow>>()
+
+    fun audioTrs(): List<Int> = query("SELECT DISTINCT tr FROM bible_audio ORDER BY tr") { it.getInt(0) }
+
+    fun audioRows(tr: Int): List<AudioRow> = audioCache.getOrPut(tr) {
+        query("SELECT book,chapter,url,url2 FROM bible_audio WHERE tr=? ORDER BY book,chapter", arrayOf(tr.toString())) {
+            AudioRow(it.getInt(0), it.getInt(1), listOf(it.str(2), it.str(3)).filter { u -> u.isNotBlank() })
+        }
+    }
+
     fun verseCount(tr: Int, book: Int, chapter: Int): Int =
         query("SELECT MAX(verse) FROM bible_verses WHERE tr=? AND book=? AND chapter=?",
             arrayOf(tr.toString(), book.toString(), chapter.toString())) { it.getInt(0) }.firstOrNull() ?: 0

@@ -12,6 +12,7 @@ sealed interface Screen {
     data class Compare(val book: Int, val chapter: Int, val verses: List<Int> = emptyList()) : Screen
     data object BibleSearch : Screen
     data object Favorites : Screen
+    data object AudioFiles : Screen
     data object SettingsScreen : Screen
     data object About : Screen
 }

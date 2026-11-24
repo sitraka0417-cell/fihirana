@@ -186,6 +186,7 @@ fun MainShell() {
                 if (playerOn) PlayerBar()
             }
         }
+        AudioPromptHost()
     }
 }
 
@@ -199,6 +200,7 @@ fun ScreenPage(s: Screen) {
         is Screen.Compare -> CompareScreen(s.book, s.chapter, s.verses)
         Screen.BibleSearch -> BibleSearchScreen()
         Screen.Favorites -> FavoritesScreen()
+        Screen.AudioFiles -> AudioFilesScreen()
         Screen.SettingsScreen -> SettingsScreen()
         Screen.About -> AboutScreen()
     }
@@ -260,6 +262,10 @@ fun DrawerContent(nav: Nav, close: () -> Unit) {
                 modifier = Modifier.padding(pad)
             )
             SectionTitle("Ahy", Modifier.padding(horizontal = 28.dp))
+            NavigationDrawerItem(
+                label = { Text("Rakitra audio") }, selected = cur == Screen.AudioFiles,
+                icon = { Icon(Ico.Download, null) }, onClick = { go(Screen.AudioFiles) }, modifier = Modifier.padding(pad)
+            )
             NavigationDrawerItem(
                 label = { Text("Tiana sy naoty") }, selected = cur == Screen.Favorites,
                 icon = { Icon(Icons.Default.Favorite, null) }, onClick = { go(Screen.Favorites) }, modifier = Modifier.padding(pad)
