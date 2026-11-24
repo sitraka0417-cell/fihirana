@@ -302,6 +302,7 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
         actions = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val aItem = AudioItems.bible(trId, book, chapter, audio)
+                if (aItem.urls.isNotEmpty()) GlassButton(Ico.Download, "Rohy audio") { AudioUi.showLinks(aItem) }
                 GlassButton(
                     if (Audio.key == aItem.key && Audio.playing) Ico.Pause else Icons.Default.PlayArrow, "Henoy"
                 ) { AudioUi.request(ctx, aItem) }
@@ -530,6 +531,10 @@ fun BiblePickerSheet(trId: Int, curBook: Int, curChapter: Int, onPick: (Int, Int
             }
         } else if (step == 1) {
             val n = Repo.chapterCount(pb)
+            val avail = remember(trId) {
+                Repo.audioRows(trId).filter { it.urls.isNotEmpty() }.map { it.book * 1000 + it.chapter }.toSet()
+            }
+            val gotSet = AudioStore.done
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -564,6 +569,14 @@ fun BiblePickerSheet(trId: Int, curBook: Int, curChapter: Int, onPick: (Int, Int
                             "$c", fontWeight = FontWeight.SemiBold,
                             color = if (cur) cs.onPrimary else cs.onSurface
                         )
+                        if ((pb * 1000 + c) in avail) {
+                            val got = "b${trId}_${pb}_${c}.mp3" in gotSet
+                            Icon(
+                                if (got) Ico.Check else Ico.Music, null,
+                                tint = if (cur) cs.onPrimary else if (got) cs.primary else cs.onSurfaceVariant,
+                                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(11.dp)
+                            )
+                        }
                     }
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) { Spacer(Modifier.height(24.dp)) }

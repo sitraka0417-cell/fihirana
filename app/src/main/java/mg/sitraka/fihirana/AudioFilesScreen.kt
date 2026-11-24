@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -23,6 +24,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -138,6 +140,7 @@ private fun DownloadCard() {
     val cs = MaterialTheme.colorScheme
     val ex = LocalExtra.current
     val done = Dl.finished + Dl.failed
+    val pct = ((Dl.finished + Dl.failed + Dl.fileFraction) / Dl.total.coerceAtLeast(1) * 100f).toInt().coerceIn(0, 100)
     Column(
         Modifier
             .fillMaxWidth()
@@ -147,14 +150,18 @@ private fun DownloadCard() {
             .padding(16.dp)
     ) {
         Text(
-            if (Dl.running) "Mampidina… $done/${Dl.total}" else "Vita ny fampidinana · ${Dl.finished}/${Dl.total}",
+            if (Dl.running) "Mampidina… $done/${Dl.total} · $pct%" else "Vita ny fampidinana · ${Dl.finished}/${Dl.total}",
             fontWeight = FontWeight.Bold, fontSize = 15.sp
         )
         Spacer(Modifier.height(8.dp))
-        LinearProgressIndicator(
-            progress = { if (Dl.total > 0) done / Dl.total.toFloat() else 0f },
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (Dl.running && Dl.total == 1 && Dl.fileFraction == 0f) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        } else {
+            LinearProgressIndicator(
+                progress = { ((Dl.finished + Dl.failed + Dl.fileFraction) / Dl.total.coerceAtLeast(1)).coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
         if (Dl.running && Dl.current.isNotEmpty()) {
             Spacer(Modifier.height(6.dp))
             Text(Dl.current, fontSize = 12.sp, color = ex.muted, maxLines = 1)
@@ -288,6 +295,43 @@ private fun BookList(c: AudioCat, avg: Long) {
                     }
                 }
                 Text("Tsindrio ny laharan'ny toko mba hampidina azy (voasary = efa voatahiry, tsindrio hihaino).", fontSize = 11.sp, color = ex.muted)
+            }
+        }
+    }
+}
+
+/** Bandeau de progression visible sur tous les écrans pendant un téléchargement. */
+@Composable
+fun DownloadBar(applyInset: Boolean) {
+    val nav = LocalNav.current
+    val cs = MaterialTheme.colorScheme
+    val done = Dl.finished + Dl.failed
+    val pct = ((Dl.finished + Dl.failed + Dl.fileFraction) / Dl.total.coerceAtLeast(1) * 100f).toInt().coerceIn(0, 100)
+    Surface(
+        color = cs.surface, tonalElevation = 6.dp, shadowElevation = 10.dp,
+        modifier = Modifier.fillMaxWidth().clickable { nav.go(Screen.AudioFiles) }
+    ) {
+        Column(
+            Modifier
+                .then(if (applyInset) Modifier.navigationBarsPadding() else Modifier)
+                .padding(horizontal = 14.dp, vertical = 8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Ico.Download, null, tint = cs.primary, modifier = Modifier.size(20.dp))
+                Text(
+                    "Mampidina $done/${Dl.total} · $pct%  ·  " + Dl.current,
+                    fontSize = 13.sp, maxLines = 1,
+                    modifier = Modifier.weight(1f).padding(horizontal = 10.dp)
+                )
+                TextButton(onClick = { Dl.cancel() }) { Text("Foano") }
+            }
+            if (Dl.total == 1 && Dl.fileFraction == 0f) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            } else {
+                LinearProgressIndicator(
+                    progress = { ((Dl.finished + Dl.failed + Dl.fileFraction) / Dl.total.coerceAtLeast(1)).coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

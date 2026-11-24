@@ -100,6 +100,13 @@ fun HymnRow(h: Hymn, snippet: String? = null, onClick: () -> Unit) {
             }
         }
         if (UserStore.isFavHymn(h)) Icon(Icons.Default.Favorite, null, tint = cs.primary, modifier = Modifier.size(18.dp))
+        if (h.hasAudio) {
+            val got = AudioStore.has("h_${h.lang}_${h.num}.mp3")
+            Row(Modifier.padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Ico.Music, null, tint = if (got) cs.primary else ex.muted, modifier = Modifier.size(17.dp))
+                if (got) Icon(Ico.Check, null, tint = cs.primary, modifier = Modifier.size(15.dp))
+            }
+        }
     }
 }
 
@@ -385,6 +392,7 @@ fun HymnScreen(lang: String, num: Int) {
                         if (Audio.key == audioItem.key && Audio.playing) Ico.Pause else Icons.Default.PlayArrow,
                         "Henoy", active = Audio.key == audioItem.key
                     ) { AudioUi.request(ctx, audioItem) }
+                    if (audioItem.urls.isNotEmpty()) RoundAction(Ico.Download, "Rohy audio") { AudioUi.showLinks(audioItem) }
                 }
             }
             Row(

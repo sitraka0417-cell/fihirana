@@ -6,15 +6,27 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.widget.Toast
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -40,7 +52,10 @@ import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 
 /** Un fichier audio : clé unique (nom du fichier local), titre et URL possibles. */
-data class AudioItem(val key: String, val title: String, val urls: List<String>)
+data class AudioItem(val key: String, val title: String, val urls: List<String>) {
+    /** Liens directs à partager : ceux sans clé d'API d'abord. */
+    val links: List<String> get() = urls.sortedBy { if (it.contains("googleapis.com")) 1 else 0 }
+}
 
 object AudioItems {
     fun hymn(h: Hymn): AudioItem =
@@ -178,6 +193,8 @@ object Dl {
         private set
     var running by mutableStateOf(false)
         private set
+    var fileFraction by mutableFloatStateOf(0f)
+        private set
 
     fun init(ctx: Context) { appCtx = ctx.applicationContext }
 
@@ -233,7 +250,9 @@ object Dl {
         while (true) {
             val item = take() ?: break
             current = item.title
+            fileFraction = 0f
             val ok = download(item)
+            fileFraction = 0f
             if (ok) {
                 AudioStore.markDone(item.key)
                 finished += 1
@@ -252,6 +271,9 @@ object Dl {
                 try {
                     val type = c.contentType ?: ""
                     if (c.responseCode !in 200..299 || type.startsWith("text/")) continue
+                    val len = c.contentLength.toLong()
+                    var read = 0L
+                    var last = 0L
                     c.inputStream.use { input ->
                         FileOutputStream(part).use { out ->
                             val buf = ByteArray(32 * 1024)
@@ -260,6 +282,11 @@ object Dl {
                                 val n = input.read(buf)
                                 if (n < 0) break
                                 out.write(buf, 0, n)
+                                read += n
+                                if (len > 0L && read - last > 48 * 1024) {
+                                    last = read
+                                    fileFraction = (read.toFloat() / len.toFloat()).coerceAtMost(1f)
+                                }
                             }
                         }
                     }
@@ -284,6 +311,11 @@ object Dl {
 object AudioUi {
     var prompt by mutableStateOf<AudioItem?>(null)
         private set
+    var linkItem by mutableStateOf<AudioItem?>(null)
+        private set
+
+    fun showLinks(item: AudioItem) { linkItem = item }
+    fun closeLinks() { linkItem = null }
 
     private fun toast(ctx: Context, s: String) = Toast.makeText(ctx, s, Toast.LENGTH_LONG).show()
 
@@ -339,5 +371,46 @@ fun AudioPromptHost() {
                 TextButton(onClick = { AudioUi.dismiss() }) { Text("Aoka ihany") }
             }
         }
+    )
+}
+
+/** Fenêtre « liens directs » : partager, ouvrir ou copier l'URL du fichier audio. */
+@Composable
+fun AudioLinkHost() {
+    val ctx = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    val item = AudioUi.linkItem ?: return
+    val links = item.links
+    AlertDialog(
+        onDismissRequest = { AudioUi.closeLinks() },
+        title = { Text("Rohy audio · " + item.title) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                if (links.isEmpty()) Text("Tsy misy rakitra audio")
+                for (u in links) {
+                    Text(u, fontSize = 12.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
+                    Row {
+                        TextButton(onClick = {
+                            val i = Intent(Intent.ACTION_SEND)
+                            i.type = "text/plain"
+                            i.putExtra(Intent.EXTRA_TEXT, item.title + "\n" + u)
+                            ctx.startActivity(Intent.createChooser(i, "Zarao ny rohy"))
+                        }) { Text("Zarao") }
+                        TextButton(onClick = {
+                            try {
+                                ctx.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u)))
+                            } catch (e: Exception) {
+                                Toast.makeText(ctx, "Tsy misy application hamoha ny rohy", Toast.LENGTH_SHORT).show()
+                            }
+                        }) { Text("Sokafy") }
+                        TextButton(onClick = {
+                            clipboard.setText(AnnotatedString(u))
+                            Toast.makeText(ctx, "Voadika ny rohy", Toast.LENGTH_SHORT).show()
+                        }) { Text("Adika") }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { AudioUi.closeLinks() }) { Text("Akatony") } }
     )
 }

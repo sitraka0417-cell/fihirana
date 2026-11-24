@@ -161,11 +161,12 @@ fun MainShell() {
             drawerContent = { DrawerContent(nav) { scope.launch { drawerState.close() } } }
         ) {
             val playerOn = Audio.key.isNotEmpty()
+            val dlOn = Dl.running
             Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                 Box(
                     Modifier
                         .weight(1f)
-                        .then(if (playerOn) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier)
+                        .then(if (playerOn || dlOn) Modifier.consumeWindowInsets(WindowInsets.navigationBars) else Modifier)
                 ) {
                     AnimatedContent(
                         targetState = nav.current,
@@ -183,10 +184,12 @@ fun MainShell() {
                         }
                     ) { s -> ScreenHost(s) }
                 }
+                if (dlOn) DownloadBar(!playerOn)
                 if (playerOn) PlayerBar()
             }
         }
         AudioPromptHost()
+        AudioLinkHost()
     }
 }
 
