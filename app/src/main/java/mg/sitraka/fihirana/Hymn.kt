@@ -389,7 +389,6 @@ fun HymnScreen(lang: String, num: Int) {
                     RoundAction(if (fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Tiana", active = fav) { UserStore.toggleHymn(h) }
                     RoundAction(Ico.Present, "Fampisehoana") { if (stanzas.isNotEmpty()) present = true }
                     PlayRound(audioItem) { AudioUi.request(ctx, audioItem) }
-                    if (audioItem.urls.isNotEmpty()) RoundAction(Ico.Download, "Rohy audio") { AudioUi.showLinks(audioItem) }
                 }
             }
             Row(

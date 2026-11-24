@@ -302,7 +302,6 @@ fun BibleReadScreen(book0: Int, chapter0: Int, verse0: Int) {
         actions = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val aItem = AudioItems.bible(trId, book, chapter, audio)
-                if (aItem.urls.isNotEmpty()) GlassButton(Ico.Download, "Rohy audio") { AudioUi.showLinks(aItem) }
                 PlayGlass(aItem) { AudioUi.request(ctx, aItem) }
                 GlassButton(Ico.Compare, "Fampitahana") { nav.go(Screen.Compare(book, chapter)) }
                 GlassButton(Icons.Default.Search, "Hikaroka") { nav.go(Screen.BibleSearch) }
