@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
@@ -213,6 +214,7 @@ fun ScreenPage(s: Screen) {
 fun DrawerContent(nav: Nav, close: () -> Unit) {
     val ex = LocalExtra.current
     val cur = nav.current
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     ModalDrawerSheet(drawerContainerColor = MaterialTheme.colorScheme.surface) {
         Column(Modifier.verticalScroll(rememberScrollState())) {
             HeroBox(height = 190.dp, seed = 77) {
@@ -276,6 +278,10 @@ fun DrawerContent(nav: Nav, close: () -> Unit) {
             NavigationDrawerItem(
                 label = { Text("Fanovana (Paramètres)") }, selected = cur == Screen.SettingsScreen,
                 icon = { Icon(Icons.Default.Settings, null) }, onClick = { go(Screen.SettingsScreen) }, modifier = Modifier.padding(pad)
+            )
+            NavigationDrawerItem(
+                label = { Text("Zarao ny application") }, selected = false,
+                icon = { Icon(Icons.Default.Share, null) }, onClick = { close(); shareApp(ctx) }, modifier = Modifier.padding(pad)
             )
             NavigationDrawerItem(
                 label = { Text("Momba ny application") }, selected = cur == Screen.About,

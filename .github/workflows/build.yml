@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,6 +22,8 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
@@ -57,3 +62,15 @@ jobs:
         with:
           name: Fihirana-Baiboly-APK
           path: out/Fihirana-Baiboly.apk
+
+      # Lien direct stable (partageable) :
+      # https://github.com/sitraka0417-cell/fihirana/releases/download/apk/Fihirana-Baiboly.apk
+      - name: Publier l'APK (Release « apk »)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk
+          name: Fihirana & Baiboly (APK vaovao indrindra)
+          body: Alaivo ny rakitra Fihirana-Baiboly.apk eto ambany dia apetraho amin'ny finday.
+          files: out/Fihirana-Baiboly.apk
+          make_latest: true
+          prerelease: false

@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -195,6 +196,14 @@ object Dl {
         private set
     var fileFraction by mutableFloatStateOf(0f)
         private set
+    var fileBytes by mutableLongStateOf(0L)
+        private set
+    var activeKey by mutableStateOf("")
+        private set
+    var busyKeys by mutableStateOf(setOf<String>())
+        private set
+
+    fun isBusy(key: String): Boolean = key in busyKeys
 
     fun init(ctx: Context) { appCtx = ctx.applicationContext }
 
@@ -206,6 +215,7 @@ object Dl {
                 if (item.urls.isEmpty() || AudioStore.has(item.key)) continue
                 if (queue.any { q -> q.key == item.key }) continue
                 queue.addLast(item)
+                busyKeys = busyKeys + item.key
                 added++
             }
             if (added > 0) {
@@ -229,9 +239,12 @@ object Dl {
     fun cancel() {
         synchronized(queue) {
             queue.clear()
+            busyKeys = emptySet()
             running = false
         }
         job?.cancel()
+        activeKey = ""
+        fileBytes = 0L
         current = ""
     }
 
@@ -250,9 +263,14 @@ object Dl {
         while (true) {
             val item = take() ?: break
             current = item.title
+            activeKey = item.key
             fileFraction = 0f
+            fileBytes = 0L
             val ok = download(item)
             fileFraction = 0f
+            fileBytes = 0L
+            activeKey = ""
+            synchronized(queue) { busyKeys = busyKeys - item.key }
             if (ok) {
                 AudioStore.markDone(item.key)
                 finished += 1
@@ -283,9 +301,10 @@ object Dl {
                                 if (n < 0) break
                                 out.write(buf, 0, n)
                                 read += n
-                                if (len > 0L && read - last > 48 * 1024) {
+                                if (read - last > 48 * 1024) {
                                     last = read
-                                    fileFraction = (read.toFloat() / len.toFloat()).coerceAtMost(1f)
+                                    fileBytes = read
+                                    if (len > 0L) fileFraction = (read.toFloat() / len.toFloat()).coerceAtMost(1f)
                                 }
                             }
                         }

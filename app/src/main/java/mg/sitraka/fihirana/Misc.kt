@@ -296,6 +296,7 @@ fun AboutScreen() {
                     Text("Namboarina tamim-pitiavana ho fanompoana sy fanomezam-boninahitra an'Andriamanitra.", color = ex.muted, fontSize = 14.sp)
                 }
             }
+            item(key = "applink") { AppLinkCard() }
             item(key = "content") {
                 SettingCard("Votoatiny") {
                     for (l in Repo.langs) Text("• ${l.name}: ${Repo.count(l.code)} hira", fontSize = 14.sp, modifier = Modifier.padding(vertical = 2.dp))

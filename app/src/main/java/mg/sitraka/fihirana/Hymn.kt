@@ -388,10 +388,7 @@ fun HymnScreen(lang: String, num: Int) {
                 ) {
                     RoundAction(if (fav) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Tiana", active = fav) { UserStore.toggleHymn(h) }
                     RoundAction(Ico.Present, "Fampisehoana") { if (stanzas.isNotEmpty()) present = true }
-                    RoundAction(
-                        if (Audio.key == audioItem.key && Audio.playing) Ico.Pause else Icons.Default.PlayArrow,
-                        "Henoy", active = Audio.key == audioItem.key
-                    ) { AudioUi.request(ctx, audioItem) }
+                    PlayRound(audioItem) { AudioUi.request(ctx, audioItem) }
                     if (audioItem.urls.isNotEmpty()) RoundAction(Ico.Download, "Rohy audio") { AudioUi.showLinks(audioItem) }
                 }
             }
@@ -601,10 +598,14 @@ fun PresentOverlay(h: Hymn, stanzas: List<Stanza>, onClose: () -> Unit) {
                     .clickable { AudioUi.request(aCtx, aItem) },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    if (Audio.key == aItem.key && Audio.playing) Ico.Pause else Icons.Default.PlayArrow, "Henoy",
-                    tint = if (Audio.key == aItem.key) Color(0xFF05070A) else Color.White
-                )
+                if (Dl.isBusy(aItem.key)) {
+                    PlaySpinner(aItem.key, if (Audio.key == aItem.key) Color(0xFF05070A) else Color.White)
+                } else {
+                    Icon(
+                        if (Audio.key == aItem.key && Audio.playing) Ico.Pause else Icons.Default.PlayArrow, "Henoy",
+                        tint = if (Audio.key == aItem.key) Color(0xFF05070A) else Color.White
+                    )
+                }
             }
             if (refrain != null) {
                 Box(

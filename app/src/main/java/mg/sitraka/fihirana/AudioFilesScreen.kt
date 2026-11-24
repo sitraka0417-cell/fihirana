@@ -1,6 +1,13 @@
 package mg.sitraka.fihirana
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -154,7 +161,7 @@ private fun DownloadCard() {
             fontWeight = FontWeight.Bold, fontSize = 15.sp
         )
         Spacer(Modifier.height(8.dp))
-        if (Dl.running && Dl.total == 1 && Dl.fileFraction == 0f) {
+        if (Dl.running && Dl.fileFraction == 0f && done == 0) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         } else {
             LinearProgressIndicator(
@@ -164,7 +171,10 @@ private fun DownloadCard() {
         }
         if (Dl.running && Dl.current.isNotEmpty()) {
             Spacer(Modifier.height(6.dp))
-            Text(Dl.current, fontSize = 12.sp, color = ex.muted, maxLines = 1)
+            Text(
+                Dl.current + (if (Dl.fileBytes > 0L) " · " + fmtSize(Dl.fileBytes) else ""),
+                fontSize = 12.sp, color = ex.muted, maxLines = 1
+            )
         }
         if (Dl.failed > 0) {
             Spacer(Modifier.height(6.dp))
@@ -319,13 +329,14 @@ fun DownloadBar(applyInset: Boolean) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Ico.Download, null, tint = cs.primary, modifier = Modifier.size(20.dp))
                 Text(
-                    "Mampidina $done/${Dl.total} · $pct%  ·  " + Dl.current,
+                    "Mampidina $done/${Dl.total} · $pct% · " + Dl.current +
+                        (if (Dl.fileBytes > 0L) " (" + fmtSize(Dl.fileBytes) + ")" else ""),
                     fontSize = 13.sp, maxLines = 1,
                     modifier = Modifier.weight(1f).padding(horizontal = 10.dp)
                 )
                 TextButton(onClick = { Dl.cancel() }) { Text("Foano") }
             }
-            if (Dl.total == 1 && Dl.fileFraction == 0f) {
+            if (Dl.fileFraction == 0f && done == 0) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             } else {
                 LinearProgressIndicator(
@@ -334,5 +345,79 @@ fun DownloadBar(applyInset: Boolean) {
                 )
             }
         }
+    }
+}
+
+/** Petit cercle qui tourne (ou se remplit) pendant le téléchargement du fichier. */
+@Composable
+fun PlaySpinner(key: String, tint: Color) {
+    if (Dl.activeKey == key && Dl.fileFraction > 0f) {
+        CircularProgressIndicator(
+            progress = { Dl.fileFraction },
+            modifier = Modifier.size(26.dp),
+            color = tint,
+            strokeWidth = 2.5.dp,
+            trackColor = tint.copy(alpha = 0.25f)
+        )
+    } else {
+        CircularProgressIndicator(modifier = Modifier.size(26.dp), color = tint, strokeWidth = 2.5.dp)
+    }
+}
+
+@Composable
+private fun DoneBadge(modifier: Modifier) {
+    Box(
+        modifier
+            .offset(x = 3.dp, y = (-3).dp)
+            .size(18.dp)
+            .clip(CircleShape)
+            .background(Color(0xFF2DD4BF))
+            .border(1.5.dp, Color(0xFF05070A), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(Ico.Check, null, tint = Color(0xFF05070A), modifier = Modifier.size(11.dp))
+    }
+}
+
+/** Bouton play rond (page d'un cantique) : spinner pendant le téléchargement, badge ✓ si déjà hors ligne. */
+@Composable
+fun PlayRound(item: AudioItem, onClick: () -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val active = Audio.key == item.key
+    val busy = Dl.isBusy(item.key)
+    Box(Modifier.size(52.dp)) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .background(if (active) cs.primary else Color(0x59000000))
+                .border(1.dp, Color(0x66FFFFFF), CircleShape)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            val fg = if (active) cs.onPrimary else Color.White
+            if (busy) PlaySpinner(item.key, fg)
+            else Icon(
+                if (active && Audio.playing) Ico.Pause else Icons.Default.PlayArrow, "Henoy",
+                tint = fg, modifier = Modifier.size(24.dp)
+            )
+        }
+        if (AudioStore.has(item.key)) DoneBadge(Modifier.align(Alignment.TopEnd))
+    }
+}
+
+/** Bouton play carré translucide (barre du haut de la Bible). */
+@Composable
+fun PlayGlass(item: AudioItem, onClick: () -> Unit) {
+    val active = Audio.key == item.key
+    val busy = Dl.isBusy(item.key)
+    Box(Modifier.size(44.dp)) {
+        Surface(shape = RoundedCornerShape(14.dp), color = Color(0x66000000), modifier = Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxSize().clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+                if (busy) PlaySpinner(item.key, Color.White)
+                else Icon(if (active && Audio.playing) Ico.Pause else Icons.Default.PlayArrow, "Henoy", tint = Color.White)
+            }
+        }
+        if (AudioStore.has(item.key)) DoneBadge(Modifier.align(Alignment.TopEnd))
     }
 }
